@@ -26,7 +26,7 @@ void QmitkOtsuTool3DGUI::ConnectNewTool(mitk::AutoSegmentationWithPreviewTool* n
   Superclass::ConnectNewTool(newTool);
 
   newTool->IsTimePointChangeAwareOff();
-  m_FirstPreviewComputation = true;
+  //m_FirstPreviewComputation = true;
 }
 
 void QmitkOtsuTool3DGUI::InitializeUI(QBoxLayout* mainLayout)
@@ -73,13 +73,13 @@ void QmitkOtsuTool3DGUI::OnPreviewBtnClicked()
   auto tool = this->GetConnectedToolAs<mitk::OtsuTool3D>();
   if (nullptr != tool)
   {
-    if (!m_FirstPreviewComputation &&
-      (tool->GetNumberOfRegions() == static_cast<unsigned int>(m_Controls.m_Spinbox->value()) &&
-      tool->GetUseValley() == m_Controls.m_ValleyCheckbox->isChecked() &&
-      tool->GetNumberOfBins() == static_cast<unsigned int>(m_Controls.m_BinsSpinBox->value())))
-      return;
+    // if (!m_FirstPreviewComputation &&
+    //   (tool->GetNumberOfRegions() == static_cast<unsigned int>(m_Controls.m_Spinbox->value()) &&
+    //   tool->GetUseValley() == m_Controls.m_ValleyCheckbox->isChecked() &&
+    //   tool->GetNumberOfBins() == static_cast<unsigned int>(m_Controls.m_BinsSpinBox->value())))
+    //   return;
 
-    m_FirstPreviewComputation = false;
+    //m_FirstPreviewComputation = false;
 
     try
     {
@@ -115,7 +115,7 @@ void QmitkOtsuTool3DGUI::OnPreviewBtnClicked()
     }
 
     this->SetLabelSetPreview(tool->GetMLPreview());
-    tool->IsTimePointChangeAwareOn();
+    //tool->IsTimePointChangeAwareOn();
   }
 }
 
