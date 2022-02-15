@@ -44,9 +44,12 @@ protected:
 
   void EnableWidgets(bool enabled) override;
   void SetLabelSetPreview(const mitk::LabelSetImage* preview);
+  void OnTimePointAwareChanged(int);
 
 private:
   QmitkSimpleLabelSetListWidget* m_LabelSelectionList = nullptr;
+  QCheckBox* m_TimePointChangeAware = nullptr;
+
 };
 
 #endif

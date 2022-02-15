@@ -14,6 +14,7 @@ found in the LICENSE file.
 #include "mitkAutoMLSegmentationWithPreviewTool.h"
 
 #include <qboxlayout.h>
+#include <qcheckbox.h>
 
 QmitkAutoMLSegmentationToolGUIBase::QmitkAutoMLSegmentationToolGUIBase() : QmitkAutoSegmentationToolGUIBase(false)
 {
@@ -47,10 +48,17 @@ void QmitkAutoMLSegmentationToolGUIBase::InitializeUI(QBoxLayout* mainLayout)
   m_LabelSelectionList->setSizePolicy(sizePolicy2);
   m_LabelSelectionList->setMaximumSize(QSize(10000000, 10000000));
 
+  m_TimePointChangeAware = new QCheckBox("Time Point Change Aware", this);
+  m_TimePointChangeAware->setChecked(false);
+  m_TimePointChangeAware->setToolTip("Toggles automatic Preview while browsing through time steps.");
+  auto tool = this->GetConnectedToolAs<mitk::AutoMLSegmentationWithPreviewTool>();
+  m_TimePointChangeAware->setVisible(tool->GetTargetSegmentationNode()->GetData()->GetTimeSteps() > 1);
+
+  mainLayout->addWidget(m_TimePointChangeAware);
   mainLayout->addWidget(m_LabelSelectionList);
 
   connect(m_LabelSelectionList, &QmitkSimpleLabelSetListWidget::SelectedLabelsChanged, this, &QmitkAutoMLSegmentationToolGUIBase::OnLabelSelectionChanged);
-
+  connect(m_TimePointChangeAware, &QCheckBox::stateChanged, this, &QmitkAutoMLSegmentationToolGUIBase::OnTimePointAwareChanged);
   Superclass::InitializeUI(mainLayout);
 }
 
@@ -68,6 +76,22 @@ void QmitkAutoMLSegmentationToolGUIBase::OnLabelSelectionChanged(const QmitkSimp
     tool->SetSelectedLabels(labelIDs);
     tool->UpdatePreview();
     this->EnableWidgets(true); //used to actualize the ConfirmSeg btn via the delegate;
+  }
+}
+
+void QmitkAutoMLSegmentationToolGUIBase::OnTimePointAwareChanged(int checkState)
+{
+  auto tool = this->GetConnectedToolAs<mitk::AutoMLSegmentationWithPreviewTool>();
+  if (nullptr != tool)
+  {
+    if (checkState == Qt::Checked)
+    {
+      tool->IsTimePointChangeAwareOn();
+    }
+    else
+    {
+      tool->IsTimePointChangeAwareOff();
+    }
   }
 }
 
