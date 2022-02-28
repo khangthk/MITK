@@ -107,7 +107,7 @@ void QmitkWatershedToolGUI::OnSettingsAccept()
     }
 
     this->SetLabelSetPreview(tool->GetMLPreview());
-    tool->IsTimePointChangeAwareOn();
+    // tool->IsTimePointChangeAwareOn();
   }
 }
 

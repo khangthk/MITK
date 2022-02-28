@@ -70,11 +70,21 @@ void QmitkAutoSegmentationToolGUIBase::OnNewToolAssociated(mitk::Tool *tool)
     //would behave. As soon as it is sorted out we can remove that "feature switch"
     //or the comment.
 
+    m_TimePointChangeAware = new QCheckBox("Time Point Change Aware", this);
+    m_TimePointChangeAware->setChecked(true);
+    m_TimePointChangeAware->setToolTip("Toggles automatic Preview while browsing through time steps");
+    m_TimePointChangeAware->setVisible(m_Tool->GetTargetSegmentationNode()->GetData()->GetTimeGeometry()->GetMaximumTimePoint()==4); // is this the right way --ashis
+    connect(m_TimePointChangeAware,
+            &QCheckBox::stateChanged,
+            this,
+            &QmitkAutoSegmentationToolGUIBase::OnTimePointAwareChanged);
+
     this->InitializeUI(m_MainLayout);
 
     m_MainLayout->addWidget(m_ConfirmSegBtn);
     m_MainLayout->addWidget(m_CheckProcessAll);
     m_MainLayout->addWidget(m_CheckCreateNew);
+    m_MainLayout->addWidget(m_TimePointChangeAware);
   }
 
   if (m_Tool.IsNotNull())
@@ -117,6 +127,7 @@ void QmitkAutoSegmentationToolGUIBase::ConnectNewTool(mitk::AutoSegmentationWith
   m_CheckProcessAll->setVisible(newTool->GetTargetSegmentationNode()->GetData()->GetTimeSteps() > 1);
 
   this->EnableWidgets(true);
+  newTool->IsTimePointChangeAwareOn();
 }
 
 void QmitkAutoSegmentationToolGUIBase::InitializeUI(QBoxLayout* /*mainLayout*/)
@@ -152,6 +163,31 @@ void QmitkAutoSegmentationToolGUIBase::EnableWidgets(bool enabled)
     if (nullptr != m_CheckCreateNew)
     {
       m_CheckCreateNew->setEnabled(enabled);
+    }
+  }
+}
+
+void QmitkAutoSegmentationToolGUIBase::OnTimePointAwareChanged(int checkState)
+{
+  auto tool = this->GetConnectedToolAs<mitk::AutoSegmentationWithPreviewTool>();
+  bool is4DData = tool->GetTargetSegmentationNode()->GetData()->GetTimeSteps() > 1;
+  if (nullptr !=tool)
+  {
+    if (checkState == Qt::Checked)
+    {
+      tool->IsTimePointChangeAwareOn();
+      if (is4DData && !m_Mode2D) //m_Mode2D because m_CheckProcessAll visibility is constrained by it. When that is
+      {                          // changed, this should be as well. 
+        m_CheckProcessAll->setVisible(true);
+      }
+    }
+    else
+    {
+      tool->IsTimePointChangeAwareOff();
+      if (is4DData && !m_Mode2D)
+      {
+        m_CheckProcessAll->setVisible(false);
+      }
     }
   }
 }

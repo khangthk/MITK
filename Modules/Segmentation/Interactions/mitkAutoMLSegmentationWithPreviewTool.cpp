@@ -126,7 +126,7 @@ void mitk::AutoMLSegmentationWithPreviewTool::DoUpdatePreview(const Image* input
   const auto timePoint = mitk::RenderingManager::GetInstance()->GetTimeNavigationController()->GetSelectedTimePoint();
 
   if (nullptr == m_MLPreviewNode->GetData()
-      || this->GetMTime() > m_MLPreviewNode->GetData()->GetMTime()
+      // || this->GetMTime() > m_MLPreviewNode->GetData()->GetMTime()
       || this->m_LastMLTimeStep != timeStep //this covers the case where dynamic
                                             //segmentations have to compute a preview
                                             //for all time steps on confirmation

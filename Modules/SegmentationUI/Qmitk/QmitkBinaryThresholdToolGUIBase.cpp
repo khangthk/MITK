@@ -41,7 +41,8 @@ QmitkBinaryThresholdToolGUIBase::~QmitkBinaryThresholdToolGUIBase()
 
 void QmitkBinaryThresholdToolGUIBase::OnThresholdingIntervalBordersChanged(double lower, double upper, bool isFloat)
 {
-  m_InternalUpdate = true;
+  m_InternalUpdate = false;
+
 
   if (m_ULMode)
   {
@@ -98,7 +99,6 @@ void QmitkBinaryThresholdToolGUIBase::OnThresholdRangeChanged(double min, double
 void QmitkBinaryThresholdToolGUIBase::OnThresholdSliderChanged(double value)
 {
   auto tool = this->GetConnectedToolAs<mitk::BinaryThresholdTool>();
-
   if (nullptr != tool && !m_InternalUpdate)
   {
     tool->SetThresholdValue(value);
