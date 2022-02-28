@@ -23,7 +23,8 @@ mitk::BinaryThresholdBaseTool::BinaryThresholdBaseTool()
   : m_SensibleMinimumThreshold(-100),
     m_SensibleMaximumThreshold(+100),
     m_LowerThreshold(1),
-    m_UpperThreshold(1)
+    m_UpperThreshold(1),
+    AutoSegmentationWithPreviewTool(true)
 {
 }
 

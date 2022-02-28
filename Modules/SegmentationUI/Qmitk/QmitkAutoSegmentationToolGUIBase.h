@@ -43,6 +43,8 @@ protected slots:
 
   void OnAcceptPreview();
 
+  void OnTimePointAwareChanged(int);
+
 protected:
   QmitkAutoSegmentationToolGUIBase(bool mode2D);
   ~QmitkAutoSegmentationToolGUIBase() override;
@@ -79,6 +81,7 @@ protected:
 
 
 private:
+  QCheckBox* m_TimePointChangeAware = nullptr;
   QCheckBox* m_CheckProcessAll = nullptr;
   QCheckBox* m_CheckCreateNew = nullptr;
   QPushButton* m_ConfirmSegBtn = nullptr;
