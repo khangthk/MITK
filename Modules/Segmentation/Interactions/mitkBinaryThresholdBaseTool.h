@@ -41,6 +41,7 @@ namespace mitk
     mitkClassMacro(BinaryThresholdBaseTool, AutoSegmentationWithPreviewTool);
 
     virtual void SetThresholdValues(double lower, double upper);
+    void UpdateCleanUp() override;
 
   protected:
     BinaryThresholdBaseTool(); // purposely hidden

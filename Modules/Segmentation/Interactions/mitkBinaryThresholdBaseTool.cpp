@@ -32,6 +32,13 @@ mitk::BinaryThresholdBaseTool::~BinaryThresholdBaseTool()
 {
 }
 
+void mitk::BinaryThresholdBaseTool::UpdateCleanUp()
+{
+
+  //this->ResetPreviewNode();
+ 
+}
+
 void mitk::BinaryThresholdBaseTool::SetThresholdValues(double lower, double upper)
 {
   /* If value is not in the min/max range, do nothing. In that case, this
