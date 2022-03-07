@@ -126,7 +126,7 @@ void mitk::AutoMLSegmentationWithPreviewTool::DoUpdatePreview(const Image* input
   const auto timePoint = mitk::RenderingManager::GetInstance()->GetTimeNavigationController()->GetSelectedTimePoint();
 
   if (nullptr == m_MLPreviewNode->GetData()
-      // || this->GetMTime() > m_MLPreviewNode->GetData()->GetMTime()
+      || this->GetMTime() > m_MLPreviewNode->GetData()->GetMTime()
       || this->m_LastMLTimeStep != timeStep //this covers the case where dynamic
                                             //segmentations have to compute a preview
                                             //for all time steps on confirmation
@@ -146,7 +146,13 @@ void mitk::AutoMLSegmentationWithPreviewTool::DoUpdatePreview(const Image* input
     auto newMLPreview = ComputeMLPreview(inputAtTimeStep, timeStep);
     this->SetNodeProperties(newMLPreview);
   }
+  this->DoMergeSimplePreview(previewImage);
+}
 
+void mitk::AutoMLSegmentationWithPreviewTool::DoMergeSimplePreview(Image* previewImage)
+{
+  const auto timePoint = RenderingManager::GetInstance()->GetTimeNavigationController()->GetSelectedTimePoint();
+  auto timeStep = previewImage->GetTimeGeometry()->TimePointToTimeStep(timePoint);
   if (!m_SelectedLabels.empty())
   {
     const auto mlPreviewImage = this->GetMLPreview();
@@ -155,6 +161,14 @@ void mitk::AutoMLSegmentationWithPreviewTool::DoUpdatePreview(const Image* input
       AccessByItk_n(mlPreviewImage, CalculateMergedSimplePreview, (previewImage, timeStep));
     }
   }
+}
+
+void mitk::AutoMLSegmentationWithPreviewTool::SetYellowToGreen()
+{
+  auto previewImage = this->GetPreviewSegmentation();
+  this->DoMergeSimplePreview(previewImage);
+  this->UpdateCleanUp();
+  RenderingManager::GetInstance()->RequestUpdateAll();
 }
 
 template <typename TPixel, unsigned int VImageDimension>

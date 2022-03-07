@@ -184,8 +184,8 @@ void QmitkAutoSegmentationToolGUIBase::OnTimePointAwareChanged(int checkState)
     else
     {
       tool->IsTimePointChangeAwareOff();
-      if (is4DData && !m_Mode2D)
-      {
+      if (is4DData && !m_Mode2D) //m_Mode2D because m_CheckProcessAll visibility is constrained by it. When that is
+      {                          // changed, this should be as well. 
         m_CheckProcessAll->setVisible(false);
       }
     }

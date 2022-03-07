@@ -66,7 +66,8 @@ void QmitkAutoMLSegmentationToolGUIBase::OnLabelSelectionChanged(const QmitkSimp
     }
 
     tool->SetSelectedLabels(labelIDs);
-    tool->UpdatePreview();
+    // tool->UpdatePreview();
+    tool->SetYellowToGreen();
     this->EnableWidgets(true); //used to actualize the ConfirmSeg btn via the delegate;
   }
 }

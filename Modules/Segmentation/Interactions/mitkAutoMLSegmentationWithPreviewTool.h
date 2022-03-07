@@ -45,6 +45,8 @@ namespace mitk
     SelectedLabelVectorType GetSelectedLabels() const;
 
     const LabelSetImage* GetMLPreview() const;
+    void SetYellowToGreen();
+    void DoMergeSimplePreview(Image*);
 
   protected:
     AutoMLSegmentationWithPreviewTool();
