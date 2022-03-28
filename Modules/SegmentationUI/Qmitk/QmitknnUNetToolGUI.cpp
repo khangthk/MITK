@@ -113,6 +113,8 @@ void QmitknnUNetToolGUI::InitializeUI(QBoxLayout *mainLayout)
     QString setVal = m_Settings.value("nnUNet/LastRESULTS_FOLDERPath").toString();
     m_Controls.modeldirectoryBox->setDirectory(setVal);
   }
+  QString lastSelectedPyEnv = m_Settings.value("nnUNet/LastPythonPath").toString();
+  m_Controls.pythonEnvComboBox->setCurrentText(lastSelectedPyEnv);
 }
 
 void QmitknnUNetToolGUI::OnPreviewRequested()
@@ -120,6 +122,7 @@ void QmitknnUNetToolGUI::OnPreviewRequested()
   mitk::nnUNetTool::Pointer tool = this->GetConnectedToolAs<mitk::nnUNetTool>();
   if (nullptr != tool)
   {
+    QString pythonPathTextItem = "";
     try
     {
       size_t hashKey(0);
@@ -135,7 +138,7 @@ void QmitknnUNetToolGUI::OnPreviewRequested()
       {
         ProcessModelParams(tool);
       }
-      QString pythonPathTextItem = m_Controls.pythonEnvComboBox->currentText();
+      pythonPathTextItem = m_Controls.pythonEnvComboBox->currentText();
       QString pythonPath = pythonPathTextItem.mid(pythonPathTextItem.indexOf(" ") + 1);
       bool isNoPip = m_Controls.nopipBox->isChecked();
 #ifdef _WIN32
@@ -244,6 +247,10 @@ void QmitknnUNetToolGUI::OnPreviewRequested()
       m_Controls.previewButton->setEnabled(true);
       tool->PredictOff();
       return;
+    }
+    if (!pythonPathTextItem.isEmpty())
+    { // only cache if the prediction ended without errors.
+      m_Settings.setValue("nnUNet/LastPythonPath", pythonPathTextItem);
     }
   }
 }
