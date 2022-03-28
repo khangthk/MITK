@@ -442,14 +442,15 @@ std::pair<QStringList, QStringList> QmitknnUNetToolGUI::ExtractTrainerPlannerFro
 std::vector<std::string> QmitknnUNetToolGUI::FetchSelectedFoldsFromUI(ctkCheckableComboBox *foldBox)
 {
   std::vector<std::string> folds;
-  if (!(foldBox->allChecked() || foldBox->noneChecked()))
+  if (foldBox->noneChecked())
   {
-    QModelIndexList foldList = foldBox->checkedIndexes();
-    for (const auto &index : foldList)
-    {
-      QString foldQString = foldBox->itemText(index.row()).split("_", QString::SplitBehavior::SkipEmptyParts).last();
-      folds.push_back(foldQString.toStdString());
-    }
+    CheckAllInCheckableComboBox(foldBox);
+  }
+  QModelIndexList foldList = foldBox->checkedIndexes();
+  for (const auto &index : foldList)
+  {
+    QString foldQString = foldBox->itemText(index.row()).split("_", QString::SplitBehavior::SkipEmptyParts).last();
+    folds.push_back(foldQString.toStdString());
   }
   return folds;
 }
