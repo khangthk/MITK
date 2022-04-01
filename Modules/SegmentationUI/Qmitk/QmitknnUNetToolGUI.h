@@ -136,6 +136,12 @@ protected:
   void EnableWidgets(bool enabled) override;
 
 private:
+  /**
+   * @brief Searches RESULTS_FOLDER environment variable. If not found,
+   * returns from the QSettings stored last used path value.
+   * @return QString 
+   */
+  QString FetchResultsFolderFromEnv();
   
   /**
    * @brief Returns GPU id of the selected GPU from the Combo box.

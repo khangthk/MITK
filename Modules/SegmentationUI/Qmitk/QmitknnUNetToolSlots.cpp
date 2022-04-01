@@ -16,6 +16,7 @@ void QmitknnUNetToolGUI::ClearAllComboBoxes()
   m_Controls.taskBox->clear();
   m_Controls.foldBox->clear();
   m_Controls.trainerBox->clear();
+  m_Controls.plannerBox->clear();
   for (auto &layout : m_EnsembleParams)
   {
     layout->modelBox->clear();
@@ -36,15 +37,10 @@ void QmitknnUNetToolGUI::OnDirectoryChanged(const QString &resultsFolder)
   m_Controls.previewButton->setEnabled(false);
   this->ClearAllComboBoxes();
   m_ParentFolder = std::make_shared<QmitknnUNetFolderParser>(resultsFolder);
-  auto models = m_ParentFolder->getModelNames<QStringList>();
-  std::for_each(models.begin(),
-                models.end(),
-                [this](QString model)
-                {
-                  if (m_VALID_MODELS.contains(model, Qt::CaseInsensitive))
-                    m_Controls.modelBox->addItem(model);
-                });
-  m_Settings.setValue("nnUNet/LastRESULTS_FOLDERPath",resultsFolder);
+  auto tasks = m_ParentFolder->getAllTasks<QStringList>();
+  tasks.removeDuplicates();
+  std::for_each(tasks.begin(), tasks.end(), [this](QString task) { m_Controls.taskBox->addItem(task); });
+  m_Settings.setValue("nnUNet/LastRESULTS_FOLDERPath", resultsFolder);
 }
 
 void QmitknnUNetToolGUI::OnModelChanged(const QString &model)
@@ -53,12 +49,57 @@ void QmitknnUNetToolGUI::OnModelChanged(const QString &model)
   {
     return;
   }
+  auto selectedTask = m_Controls.taskBox->currentText();
   ctkComboBox *box = qobject_cast<ctkComboBox *>(sender());
   if (box == m_Controls.modelBox)
   {
-    m_Controls.taskBox->clear();
-    auto tasks = m_ParentFolder->getTasksForModel<QStringList>(model);
-    std::for_each(tasks.begin(), tasks.end(), [this](QString task) { m_Controls.taskBox->addItem(task); });
+    if (model == m_VALID_MODELS.last())
+    {
+      m_Controls.trainerBox->setVisible(false);
+      m_Controls.trainerLabel->setVisible(false);
+      m_Controls.plannerBox->setVisible(false);
+      m_Controls.plannerLabel->setVisible(false);
+      m_Controls.foldBox->setVisible(false);
+      m_Controls.foldLabel->setVisible(false);
+      ShowEnsembleLayout(true);
+      auto models = m_ParentFolder->getModelsForTask<QStringList>(m_Controls.taskBox->currentText());
+      models.removeDuplicates();
+      models.removeOne(m_VALID_MODELS.last());
+      for (auto &layout : m_EnsembleParams)
+      {
+        layout->modelBox->clear();
+        layout->trainerBox->clear();
+        layout->plannerBox->clear();
+        std::for_each(models.begin(),
+                      models.end(),
+                      [&layout, this](QString model)
+                      {
+                        if (m_VALID_MODELS.contains(model, Qt::CaseInsensitive))
+                          layout->modelBox->addItem(model);
+                      });
+      }
+      m_Controls.previewButton->setEnabled(true);
+    }
+    else
+    {
+      m_Controls.trainerBox->setVisible(true);
+      m_Controls.trainerLabel->setVisible(true);
+      m_Controls.plannerBox->setVisible(true);
+      m_Controls.plannerLabel->setVisible(true);
+      m_Controls.foldBox->setVisible(true);
+      m_Controls.foldLabel->setVisible(true);
+      m_Controls.previewButton->setEnabled(false);
+      ShowEnsembleLayout(false);
+      auto trainerPlanners = m_ParentFolder->getTrainerPlannersForTask<QStringList>(selectedTask, model);
+      QStringList trainers, planners;
+      std::tie(trainers, planners) = ExtractTrainerPlannerFromString(trainerPlanners);
+      m_Controls.trainerBox->clear();
+      m_Controls.plannerBox->clear();
+      std::for_each(
+        trainers.begin(), trainers.end(), [this](QString trainer) { m_Controls.trainerBox->addItem(trainer); });
+      std::for_each(
+        planners.begin(), planners.end(), [this](QString planner) { m_Controls.plannerBox->addItem(planner); });
+    }
   }
   else if (!m_EnsembleParams.empty())
   {
@@ -68,15 +109,15 @@ void QmitknnUNetToolGUI::OnModelChanged(const QString &model)
       {
         layout->trainerBox->clear();
         layout->plannerBox->clear();
-        auto trainerPlanners =
-          m_ParentFolder->getTrainerPlannersForTask<QStringList>(m_Controls.taskBox->currentText(), model);
+        auto trainerPlanners = m_ParentFolder->getTrainerPlannersForTask<QStringList>(selectedTask, model);
         QStringList trainers, planners;
         std::tie(trainers, planners) = ExtractTrainerPlannerFromString(trainerPlanners);
-
-        std::for_each(
-          trainers.begin(), trainers.end(), [&layout](const QString& trainer) { layout->trainerBox->addItem(trainer); });
-        std::for_each(
-          planners.begin(), planners.end(), [&layout](const QString& planner) { layout->plannerBox->addItem(planner); });
+        std::for_each(trainers.begin(),
+                      trainers.end(),
+                      [&layout](const QString &trainer) { layout->trainerBox->addItem(trainer); });
+        std::for_each(planners.begin(),
+                      planners.end(),
+                      [&layout](const QString &planner) { layout->plannerBox->addItem(planner); });
         break;
       }
     }
@@ -89,55 +130,20 @@ void QmitknnUNetToolGUI::OnTaskChanged(const QString &task)
   {
     return;
   }
-  m_Controls.trainerBox->clear();
-  m_Controls.plannerBox->clear();
-  if (m_Controls.modelBox->currentText() == m_VALID_MODELS.last())
+  m_Controls.modelBox->clear();
+  auto models = m_ParentFolder->getModelsForTask<QStringList>(task);
+  models.removeDuplicates();
+  if (!models.contains(m_VALID_MODELS.last(), Qt::CaseInsensitive))
   {
-    m_Controls.trainerBox->setVisible(false);
-    m_Controls.trainerLabel->setVisible(false);
-    m_Controls.plannerBox->setVisible(false);
-    m_Controls.plannerLabel->setVisible(false);
-    m_Controls.foldBox->setVisible(false);
-    m_Controls.foldLabel->setVisible(false);
-    ShowEnsembleLayout(true);
-    auto models = m_ParentFolder->getModelsForTask<QStringList>(m_Controls.taskBox->currentText());
-    models.removeDuplicates();
-    models.removeOne(m_VALID_MODELS.last());
-
-    for (auto &layout : m_EnsembleParams)
-    {
-      layout->modelBox->clear();
-      layout->trainerBox->clear();
-      layout->plannerBox->clear();
-      std::for_each(models.begin(),
-                    models.end(),
-                    [&layout, this](QString model)
-                    {
-                      if (m_VALID_MODELS.contains(model, Qt::CaseInsensitive))
-                        layout->modelBox->addItem(model);
-                    });
-    }
-    m_Controls.previewButton->setEnabled(true);
+    models << m_VALID_MODELS.last(); // add ensemble even if folder doesn't exist
   }
-  else
-  {
-    m_Controls.trainerBox->setVisible(true);
-    m_Controls.trainerLabel->setVisible(true);
-    m_Controls.plannerBox->setVisible(true);
-    m_Controls.plannerLabel->setVisible(true);
-    m_Controls.foldBox->setVisible(true);
-    m_Controls.foldLabel->setVisible(true);
-    m_Controls.previewButton->setEnabled(false);
-    ShowEnsembleLayout(false);
-    auto trainerPlanners =
-      m_ParentFolder->getTrainerPlannersForTask<QStringList>(task, m_Controls.modelBox->currentText());
-    QStringList trainers, planners;
-    std::tie(trainers, planners) = ExtractTrainerPlannerFromString(trainerPlanners);
-    std::for_each(
-      trainers.begin(), trainers.end(), [this](QString trainer) { m_Controls.trainerBox->addItem(trainer); });
-    std::for_each(
-      planners.begin(), planners.end(), [this](QString planner) { m_Controls.plannerBox->addItem(planner); });
-  }
+  std::for_each(models.begin(),
+                models.end(),
+                [this](QString model)
+                {
+                  if (m_VALID_MODELS.contains(model, Qt::CaseInsensitive))
+                    m_Controls.modelBox->addItem(model);
+                });
 }
 
 void QmitknnUNetToolGUI::OnTrainerChanged(const QString &plannerSelected)
@@ -182,7 +188,7 @@ void QmitknnUNetToolGUI::OnTrainerChanged(const QString &plannerSelected)
           selectedTrainer, plannerSelected, selectedTask, selectedModel);
         std::for_each(folds.begin(),
                       folds.end(),
-                      [&layout](const QString& fold)
+                      [&layout](const QString &fold)
                       {
                         if (fold.startsWith("fold_", Qt::CaseInsensitive)) // imposed by nnUNet
                           layout->foldBox->addItem(fold);
@@ -342,7 +348,8 @@ mitk::ModelParams QmitknnUNetToolGUI::MapToRequest(const QString &modelName,
   requestObject.folds = folds;
   mitk::nnUNetTool::Pointer tool = this->GetConnectedToolAs<mitk::nnUNetTool>();
   requestObject.inputName = tool->GetRefNode()->GetName();
-  requestObject.timeStamp = std::to_string(mitk::RenderingManager::GetInstance()->GetTimeNavigationController()->GetSelectedTimePoint());
+  requestObject.timeStamp =
+    std::to_string(mitk::RenderingManager::GetInstance()->GetTimeNavigationController()->GetSelectedTimePoint());
   return requestObject;
 }
 
@@ -362,7 +369,7 @@ void QmitknnUNetToolGUI::SegmentationResultHandler(mitk::nnUNetTool *tool)
   tool->RenderOutputBuffer();
   this->SetLabelSetPreview(tool->GetMLPreview());
   WriteStatusMessage("<b>STATUS: </b><i>Segmentation task finished successfully. <br>Please Confirm the "
-                                  "segmentation else, could result in data loss</i>");
+                     "segmentation else, could result in data loss</i>");
   m_Controls.stopButton->setEnabled(false);
 }
 
@@ -385,7 +392,7 @@ void QmitknnUNetToolGUI::ShowEnsembleLayout(bool visible)
     connect(
       lay1->plannerBox, SIGNAL(currentTextChanged(const QString &)), this, SLOT(OnTrainerChanged(const QString &)));
     m_EnsembleParams.push_back(std::move(lay1));
-    
+
     ctkCollapsibleGroupBox *groupBoxModel2 = new ctkCollapsibleGroupBox(this);
     auto lay2 = std::make_unique<QmitknnUNetTaskParamsUITemplate>(groupBoxModel2);
     groupBoxModel2->setObjectName(QString::fromUtf8("model_2_Box"));

@@ -18,6 +18,7 @@ found in the LICENSE file.
 #include <QIcon>
 #include <QmitkStyleManager.h>
 #include <QtGlobal>
+#include <itksys/SystemTools.hxx>
 #include <set>
 
 MITK_TOOL_GUI_MACRO(MITKSEGMENTATIONUI_EXPORT, QmitknnUNetToolGUI, "")
@@ -110,8 +111,11 @@ void QmitknnUNetToolGUI::InitializeUI(QBoxLayout *mainLayout)
 
   if (nullptr != m_Controls.modeldirectoryBox)
   {
-    QString setVal = m_Settings.value("nnUNet/LastRESULTS_FOLDERPath").toString();
-    m_Controls.modeldirectoryBox->setDirectory(setVal);
+    QString setVal = FetchResultsFolderFromEnv();
+    if (!setVal.isEmpty())
+    {
+      m_Controls.modeldirectoryBox->setDirectory(setVal);
+    }
   }
   QString lastSelectedPyEnv = m_Settings.value("nnUNet/LastPythonPath").toString();
   m_Controls.pythonEnvComboBox->setCurrentText(lastSelectedPyEnv);
@@ -503,4 +507,19 @@ unsigned int QmitknnUNetToolGUI::FetchSelectedGPUFromUI()
     QString gpuId = gpuInfo.split(":", QString::SplitBehavior::SkipEmptyParts).first();
     return static_cast<unsigned int>(gpuId.toInt());
   }
+}
+
+QString QmitknnUNetToolGUI::FetchResultsFolderFromEnv()
+{
+  const char *pathVal = itksys::SystemTools::GetEnv("RESULTS_FOLDER");
+  QString retVal;
+  if (pathVal)
+  {
+    retVal = QString::fromUtf8(pathVal);
+  }
+  else
+  {
+    retVal = m_Settings.value("nnUNet/LastRESULTS_FOLDERPath").toString();
+  }
+  return retVal;
 }
