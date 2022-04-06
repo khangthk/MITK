@@ -172,6 +172,15 @@ void QmitknnUNetToolGUI::OnTrainerChanged(const QString &plannerSelected)
     {
       CheckAllInCheckableComboBox(m_Controls.foldBox);
       m_Controls.previewButton->setEnabled(true);
+      const QString parentPath = QDir::cleanPath(m_ParentFolder->getResultsFolder() + QDir::separator() + "nnUNet" +
+                                                 QDir::separator() + selectedModel + QDir::separator() + selectedTask +
+                                                 QDir::separator() + selectedTrainer + QString("__") + plannerSelected);
+      const QString jsonPath = this->DumpJSONfromPickle(parentPath);
+      if (!jsonPath.isEmpty())
+      {
+        this->WriteMultiModalInfoFromJSON(jsonPath);
+      }
+      MITK_INFO << parentPath.toStdString();
     }
   }
   else if (!m_EnsembleParams.empty())
@@ -197,6 +206,14 @@ void QmitknnUNetToolGUI::OnTrainerChanged(const QString &plannerSelected)
         {
           CheckAllInCheckableComboBox(layout->foldBox);
           m_Controls.previewButton->setEnabled(true);
+          const QString parentPath = QDir::cleanPath(
+            m_ParentFolder->getResultsFolder() + QDir::separator() + "nnUNet" + QDir::separator() + selectedModel +
+            QDir::separator() + selectedTask + QDir::separator() + selectedTrainer + QString("__") + plannerSelected);
+          const QString jsonPath = this->DumpJSONfromPickle(parentPath);
+          if (!jsonPath.isEmpty())
+          {
+            this->WriteMultiModalInfoFromJSON(jsonPath);
+          }
         }
         break;
       }
@@ -257,7 +274,7 @@ void QmitknnUNetToolGUI::OnCheckBoxChanged(int state)
         }
         m_Controls.advancedSettingsLayout->addWidget(defaultImage, m_UI_ROWS + m_Modalities.size() + 1, 1, 1, 3);
         m_Modalities.push_back(defaultImage);
-        m_UI_ROWS++;
+        // m_UI_ROWS++;
       }
       else
       {
@@ -271,7 +288,8 @@ void QmitknnUNetToolGUI::OnCheckBoxChanged(int state)
 }
 
 void QmitknnUNetToolGUI::OnModalitiesNumberChanged(int num)
-{
+{ 
+  MITK_INFO << "ASHIS NUM MOD " << num;
   while (num > static_cast<int>(m_Modalities.size() - 1))
   {
     QmitkDataStorageComboBox *multiModalBox = new QmitkDataStorageComboBox(this, true);

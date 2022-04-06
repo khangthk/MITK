@@ -136,6 +136,13 @@ protected:
   void EnableWidgets(bool enabled) override;
 
 private:
+
+  void WriteMultiModalInfoFromJSON(const QString&);
+
+  void ClearAllModalLabels();
+  
+  QString DumpJSONfromPickle(const QString&);
+
   /**
    * @brief Searches RESULTS_FOLDER environment variable. If not found,
    * returns from the QSettings stored last used path value.
@@ -269,6 +276,7 @@ private:
    *
    */
   std::vector<QmitkDataStorageComboBox *> m_Modalities;
+  std::vector<QLabel*> m_ModalLabels;
 
   std::vector<std::unique_ptr<QmitknnUNetTaskParamsUITemplate>> m_EnsembleParams;
 

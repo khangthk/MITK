@@ -12,10 +12,13 @@ found in the LICENSE file.
 
 #include "QmitknnUNetToolGUI.h"
 
+#include "mitkProcessExecutor.h"
 #include "mitknnUnetTool.h"
 #include <QApplication>
 #include <QDir>
 #include <QIcon>
+#include <QJsonDocument>
+#include <QJsonObject>
 #include <QmitkStyleManager.h>
 #include <QtGlobal>
 #include <itksys/SystemTools.hxx>
@@ -522,4 +525,132 @@ QString QmitknnUNetToolGUI::FetchResultsFolderFromEnv()
     retVal = m_Settings.value("nnUNet/LastRESULTS_FOLDERPath").toString();
   }
   return retVal;
+}
+
+namespace
+{
+  void onPythonProcessEvent(itk::Object * /*pCaller*/, const itk::EventObject &e, void *)
+  {
+    std::string testCOUT;
+    std::string testCERR;
+    const auto *pEvent = dynamic_cast<const mitk::ExternalProcessStdOutEvent *>(&e);
+
+    if (pEvent)
+    {
+      testCOUT = testCOUT + pEvent->GetOutput();
+      MITK_INFO << testCOUT;
+    }
+
+    const auto *pErrEvent = dynamic_cast<const mitk::ExternalProcessStdErrEvent *>(&e);
+
+    if (pErrEvent)
+    {
+      testCERR = testCERR + pErrEvent->GetOutput();
+      MITK_ERROR << testCERR;
+    }
+  }
+} // namespace
+
+QString QmitknnUNetToolGUI::DumpJSONfromPickle(const QString &parentPath)
+{
+  const QString picklePath = parentPath + QDir::separator() + QString("plans.pkl");
+  const QString jsonPath = parentPath + QDir::separator() + QString("mitk_export.json");
+  if (!QFile::exists(jsonPath))
+  {
+    mitk::ProcessExecutor::Pointer spExec = mitk::ProcessExecutor::New();
+    itk::CStyleCommand::Pointer spCommand = itk::CStyleCommand::New();
+    spCommand->SetCallback(&onPythonProcessEvent);
+    spExec->AddObserver(mitk::ExternalProcessOutputEvent(), spCommand);
+    mitk::ProcessExecutor::ArgumentListType args;
+    args.push_back("-c");
+    std::string pythonCode; // python syntax to parse plans.pkl file and export as Json file.
+    pythonCode.append("import pickle;");
+    pythonCode.append("import json;");
+    pythonCode.append("loaded_pickle = pickle.load(open('");
+    pythonCode.append(picklePath.toStdString());
+    pythonCode.append("','rb'));");
+    pythonCode.append("modal_dict = {key: loaded_pickle[key] for key in loaded_pickle.keys() if key in "
+                      "['modalities','num_modalities']};");
+    pythonCode.append("json.dump(modal_dict, open('");
+    pythonCode.append(jsonPath.toStdString());
+    pythonCode.append("', 'w'))");
+
+    args.push_back(pythonCode);
+    try
+    {
+      for (auto arg : args)
+        MITK_INFO << arg;
+      spExec->Execute("/usr/bin", "python3", args);
+    }
+    catch (const mitk::Exception &e)
+    {
+      MITK_ERROR << "Pickle parsing FAILED!" << e.GetDescription();
+      return QString("");
+    }
+  }
+  return jsonPath;
+}
+
+void QmitknnUNetToolGUI::ClearAllModalLabels()
+{
+  for (auto modalLabel : m_ModalLabels)
+  {
+    delete modalLabel; // delete the layout item
+    m_ModalLabels.pop_back();
+  }
+  m_Controls.advancedSettingsLayout->update();
+}
+
+void QmitknnUNetToolGUI::WriteMultiModalInfoFromJSON(const QString &jsonPath)
+{
+  if (QFile::exists(jsonPath))
+  {
+    QFile file(jsonPath);
+    if (file.open(QIODevice::ReadOnly | QIODevice::Text))
+    {
+      QByteArray bytes = file.readAll();
+      file.close();
+
+      QJsonParseError jsonError;
+      QJsonDocument document = QJsonDocument::fromJson(bytes, &jsonError);
+      if (jsonError.error != QJsonParseError::NoError)
+      {
+        MITK_INFO << "fromJson failed: " << jsonError.errorString().toStdString() << endl;
+        return;
+      }
+      if (document.isObject())
+      {
+        QJsonObject jsonObj = document.object();
+        int num_mods = jsonObj["num_modalities"].toInt();
+        MITK_INFO << "asjos mods" << num_mods;
+        ClearAllModalLabels();
+        if (num_mods > 1)
+        {
+          m_Controls.multiModalBox->setChecked(true);
+          m_Controls.multiModalSpinBox->setValue(num_mods - 1);
+          OnModalitiesNumberChanged(num_mods-1);
+          m_Controls.advancedSettingsLayout->update();
+          QJsonObject obj = jsonObj.value("modalities").toObject();
+          QStringList keys = obj.keys();
+          int count = 0;
+          for (auto key : keys)
+          {
+            auto value = obj.take(key);
+            // MITK_INFO << key.toStdString() << " string: " << value.toString().toStdString();
+            QLabel *label = new QLabel(value.toString(), this);
+            m_ModalLabels.push_back(label);
+            m_Controls.advancedSettingsLayout->addWidget(label, m_UI_ROWS + 1 + count, 0);
+            count++;
+          }
+          m_Controls.multiModalSpinBox->setMinimum(num_mods - 1);
+          m_Controls.advancedSettingsLayout->update();
+        }
+        else
+        {
+          MITK_INFO << "setting OFF multi modalbox ashis";
+          m_Controls.multiModalBox->setChecked(false);
+        }
+      }
+    }
+  }
 }
