@@ -10,6 +10,34 @@ void QmitknnUNetToolGUI::EnableWidgets(bool enabled)
   Superclass::EnableWidgets(enabled);
 }
 
+void QmitknnUNetToolGUI::ClearAllModalities()
+{
+  m_Controls.multiModalSpinBox->setMinimum(0);
+  m_Controls.multiModalBox->setChecked(false);
+  ClearAllModalLabels();
+}
+
+void QmitknnUNetToolGUI::ClearAllModalLabels()
+{
+  for (auto modalLabel : m_ModalLabels)
+  {
+    delete modalLabel; // delete the layout item
+    m_ModalLabels.pop_back();
+  }
+  m_Controls.advancedSettingsLayout->update();
+}
+
+void QmitknnUNetToolGUI::DisableEverything()
+{
+  m_Controls.modeldirectoryBox->setEnabled(false);
+  m_Controls.refreshdirectoryBox->setEnabled(false);
+  m_Controls.previewButton->setEnabled(false);
+  m_Controls.multiModalSpinBox->setVisible(false);
+  m_Controls.multiModalBox->setEnabled(false);
+  ClearAllComboBoxes();
+  ClearAllModalities();
+}
+
 void QmitknnUNetToolGUI::ClearAllComboBoxes()
 {
   m_Controls.modelBox->clear();
@@ -35,7 +63,8 @@ void QmitknnUNetToolGUI::OnRefreshPresssed()
 void QmitknnUNetToolGUI::OnDirectoryChanged(const QString &resultsFolder)
 {
   m_Controls.previewButton->setEnabled(false);
-  this->ClearAllComboBoxes();
+  ClearAllComboBoxes();
+  ClearAllModalities();
   m_ParentFolder = std::make_shared<QmitknnUNetFolderParser>(resultsFolder);
   auto tasks = m_ParentFolder->getAllTasks<QStringList>();
   tasks.removeDuplicates();
@@ -49,6 +78,7 @@ void QmitknnUNetToolGUI::OnModelChanged(const QString &model)
   {
     return;
   }
+  ClearAllModalities();
   auto selectedTask = m_Controls.taskBox->currentText();
   ctkComboBox *box = qobject_cast<ctkComboBox *>(sender());
   if (box == m_Controls.modelBox)
@@ -178,9 +208,8 @@ void QmitknnUNetToolGUI::OnTrainerChanged(const QString &plannerSelected)
       const QString jsonPath = this->DumpJSONfromPickle(parentPath);
       if (!jsonPath.isEmpty())
       {
-        this->WriteMultiModalInfoFromJSON(jsonPath);
+        this->DisplayMultiModalInfoFromJSON(jsonPath);
       }
-      MITK_INFO << parentPath.toStdString();
     }
   }
   else if (!m_EnsembleParams.empty())
@@ -212,7 +241,7 @@ void QmitknnUNetToolGUI::OnTrainerChanged(const QString &plannerSelected)
           const QString jsonPath = this->DumpJSONfromPickle(parentPath);
           if (!jsonPath.isEmpty())
           {
-            this->WriteMultiModalInfoFromJSON(jsonPath);
+            this->DisplayMultiModalInfoFromJSON(jsonPath);
           }
         }
         break;
@@ -229,6 +258,7 @@ void QmitknnUNetToolGUI::OnPythonPathChanged(const QString &pyEnv)
       QFileDialog::getExistingDirectory(m_Controls.pythonEnvComboBox->parentWidget(), "Python Path", "dir");
     if (!path.isEmpty())
     {
+      OnPythonPathChanged(path); // recall same function for new path validation
       m_Controls.pythonEnvComboBox->insertItem(0, path);
       m_Controls.pythonEnvComboBox->setCurrentIndex(0);
     }
@@ -239,6 +269,25 @@ void QmitknnUNetToolGUI::OnPythonPathChanged(const QString &pyEnv)
       "WARNING: nnUNet is not detected on the Python environment you selected. Please select another "
       "environment or create one. For more info refer https://github.com/MIC-DKFZ/nnUNet";
     ShowErrorMessage(warning);
+    DisableEverything();
+  }
+  else
+  {
+    m_Controls.modeldirectoryBox->setEnabled(true);
+    m_Controls.previewButton->setEnabled(true);
+    m_Controls.refreshdirectoryBox->setEnabled(true);
+    m_Controls.multiModalBox->setEnabled(true);
+    QString setVal = FetchResultsFolderFromEnv();
+    if (!setVal.isEmpty())
+    {
+      m_Controls.modeldirectoryBox->setDirectory(setVal);
+    }
+    OnRefreshPresssed();
+    m_PythonPath = pyEnv.mid(pyEnv.indexOf(" ") + 1);
+    if (!(m_PythonPath.endsWith("bin", Qt::CaseInsensitive) || m_PythonPath.endsWith("bin/", Qt::CaseInsensitive)))
+    {
+      m_PythonPath += QDir::separator() + QString("bin");
+    }
   }
 }
 
@@ -288,7 +337,7 @@ void QmitknnUNetToolGUI::OnCheckBoxChanged(int state)
 }
 
 void QmitknnUNetToolGUI::OnModalitiesNumberChanged(int num)
-{ 
+{
   MITK_INFO << "ASHIS NUM MOD " << num;
   while (num > static_cast<int>(m_Modalities.size() - 1))
   {

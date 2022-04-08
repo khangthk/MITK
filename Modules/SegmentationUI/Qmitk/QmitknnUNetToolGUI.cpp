@@ -74,7 +74,7 @@ void QmitknnUNetToolGUI::InitializeUI(QBoxLayout *mainLayout)
 #if QT_VERSION >= 0x050F00 // 5.15
           SIGNAL(textActivated(const QString &)),
 #elif QT_VERSION >= 0x050C00 // 5.12
-          SIGNAL(activated(const QString &)),
+          SIGNAL(currentTextChanged(const QString &)),
 #endif
           this,
           SLOT(OnPythonPathChanged(const QString &)));
@@ -111,15 +111,7 @@ void QmitknnUNetToolGUI::InitializeUI(QBoxLayout *mainLayout)
   mainLayout->addLayout(m_Controls.verticalLayout);
   Superclass::InitializeUI(mainLayout);
   m_UI_ROWS = m_Controls.advancedSettingsLayout->rowCount(); // Must do. Row count is correct only here.
-
-  if (nullptr != m_Controls.modeldirectoryBox)
-  {
-    QString setVal = FetchResultsFolderFromEnv();
-    if (!setVal.isEmpty())
-    {
-      m_Controls.modeldirectoryBox->setDirectory(setVal);
-    }
-  }
+  DisableEverything();
   QString lastSelectedPyEnv = m_Settings.value("nnUNet/LastPythonPath").toString();
   m_Controls.pythonEnvComboBox->setCurrentText(lastSelectedPyEnv);
 }
@@ -146,20 +138,8 @@ void QmitknnUNetToolGUI::OnPreviewRequested()
         ProcessModelParams(tool);
       }
       pythonPathTextItem = m_Controls.pythonEnvComboBox->currentText();
-      QString pythonPath = pythonPathTextItem.mid(pythonPathTextItem.indexOf(" ") + 1);
+      QString pythonPath = m_PythonPath;
       bool isNoPip = m_Controls.nopipBox->isChecked();
-#ifdef _WIN32
-      if (!isNoPip && !(pythonPath.endsWith("Scripts", Qt::CaseInsensitive) ||
-                        pythonPath.endsWith("Scripts/", Qt::CaseInsensitive)))
-      {
-        pythonPath += QDir::separator() + QString("Scripts");
-      }
-#else
-      if (!(pythonPath.endsWith("bin", Qt::CaseInsensitive) || pythonPath.endsWith("bin/", Qt::CaseInsensitive)))
-      {
-        pythonPath += QDir::separator() + QString("bin");
-      }
-#endif
       std::string nnUNetDirectory;
       if (isNoPip)
       {
@@ -300,7 +280,9 @@ bool QmitknnUNetToolGUI::IsNNUNetInstalled(const QString &pythonPath)
   }
 #endif
   fullPath = fullPath.mid(fullPath.indexOf(" ") + 1);
-  return QFile::exists(fullPath + QDir::separator() + QString("nnUNet_predict"));
+  bool isExists = QFile::exists(fullPath + QDir::separator() + QString("nnUNet_predict")) &&
+                  QFile::exists(fullPath + QDir::separator() + QString("python3"));
+  return isExists;
 }
 
 void QmitknnUNetToolGUI::ShowErrorMessage(const std::string &message, QMessageBox::Icon icon)
@@ -527,30 +509,6 @@ QString QmitknnUNetToolGUI::FetchResultsFolderFromEnv()
   return retVal;
 }
 
-namespace
-{
-  void onPythonProcessEvent(itk::Object * /*pCaller*/, const itk::EventObject &e, void *)
-  {
-    std::string testCOUT;
-    std::string testCERR;
-    const auto *pEvent = dynamic_cast<const mitk::ExternalProcessStdOutEvent *>(&e);
-
-    if (pEvent)
-    {
-      testCOUT = testCOUT + pEvent->GetOutput();
-      MITK_INFO << testCOUT;
-    }
-
-    const auto *pErrEvent = dynamic_cast<const mitk::ExternalProcessStdErrEvent *>(&e);
-
-    if (pErrEvent)
-    {
-      testCERR = testCERR + pErrEvent->GetOutput();
-      MITK_ERROR << testCERR;
-    }
-  }
-} // namespace
-
 QString QmitknnUNetToolGUI::DumpJSONfromPickle(const QString &parentPath)
 {
   const QString picklePath = parentPath + QDir::separator() + QString("plans.pkl");
@@ -559,8 +517,6 @@ QString QmitknnUNetToolGUI::DumpJSONfromPickle(const QString &parentPath)
   {
     mitk::ProcessExecutor::Pointer spExec = mitk::ProcessExecutor::New();
     itk::CStyleCommand::Pointer spCommand = itk::CStyleCommand::New();
-    spCommand->SetCallback(&onPythonProcessEvent);
-    spExec->AddObserver(mitk::ExternalProcessOutputEvent(), spCommand);
     mitk::ProcessExecutor::ArgumentListType args;
     args.push_back("-c");
     std::string pythonCode; // python syntax to parse plans.pkl file and export as Json file.
@@ -578,30 +534,20 @@ QString QmitknnUNetToolGUI::DumpJSONfromPickle(const QString &parentPath)
     args.push_back(pythonCode);
     try
     {
-      for (auto arg : args)
-        MITK_INFO << arg;
-      spExec->Execute("/usr/bin", "python3", args);
+      spExec->Execute(m_PythonPath.toStdString(), "python3", args);
     }
     catch (const mitk::Exception &e)
     {
-      MITK_ERROR << "Pickle parsing FAILED!" << e.GetDescription();
+      MITK_ERROR << "Pickle parsing FAILED!" << e.GetDescription(); // SHOW ERROR
+      WriteStatusMessage(
+        "Parsing failed in backend. Multiple Modalities will now have to be manually entered by the user.");
       return QString("");
     }
   }
   return jsonPath;
 }
 
-void QmitknnUNetToolGUI::ClearAllModalLabels()
-{
-  for (auto modalLabel : m_ModalLabels)
-  {
-    delete modalLabel; // delete the layout item
-    m_ModalLabels.pop_back();
-  }
-  m_Controls.advancedSettingsLayout->update();
-}
-
-void QmitknnUNetToolGUI::WriteMultiModalInfoFromJSON(const QString &jsonPath)
+void QmitknnUNetToolGUI::DisplayMultiModalInfoFromJSON(const QString &jsonPath)
 {
   if (QFile::exists(jsonPath))
   {
@@ -622,13 +568,11 @@ void QmitknnUNetToolGUI::WriteMultiModalInfoFromJSON(const QString &jsonPath)
       {
         QJsonObject jsonObj = document.object();
         int num_mods = jsonObj["num_modalities"].toInt();
-        MITK_INFO << "asjos mods" << num_mods;
         ClearAllModalLabels();
         if (num_mods > 1)
         {
           m_Controls.multiModalBox->setChecked(true);
           m_Controls.multiModalSpinBox->setValue(num_mods - 1);
-          OnModalitiesNumberChanged(num_mods-1);
           m_Controls.advancedSettingsLayout->update();
           QJsonObject obj = jsonObj.value("modalities").toObject();
           QStringList keys = obj.keys();
@@ -636,8 +580,7 @@ void QmitknnUNetToolGUI::WriteMultiModalInfoFromJSON(const QString &jsonPath)
           for (auto key : keys)
           {
             auto value = obj.take(key);
-            // MITK_INFO << key.toStdString() << " string: " << value.toString().toStdString();
-            QLabel *label = new QLabel(value.toString(), this);
+            QLabel *label = new QLabel("<i>" + value.toString() + "</i>", this);
             m_ModalLabels.push_back(label);
             m_Controls.advancedSettingsLayout->addWidget(label, m_UI_ROWS + 1 + count, 0);
             count++;
@@ -647,7 +590,7 @@ void QmitknnUNetToolGUI::WriteMultiModalInfoFromJSON(const QString &jsonPath)
         }
         else
         {
-          MITK_INFO << "setting OFF multi modalbox ashis";
+          m_Controls.multiModalSpinBox->setMinimum(0);
           m_Controls.multiModalBox->setChecked(false);
         }
       }
