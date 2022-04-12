@@ -572,6 +572,7 @@ void QmitknnUNetToolGUI::DisplayMultiModalInfoFromJSON(const QString &jsonPath)
         if (num_mods > 1)
         {
           m_Controls.multiModalBox->setChecked(true);
+          m_Controls.multiModalBox->setEnabled(false);
           m_Controls.multiModalSpinBox->setValue(num_mods - 1);
           m_Controls.advancedSettingsLayout->update();
           QJsonObject obj = jsonObj.value("modalities").toObject();

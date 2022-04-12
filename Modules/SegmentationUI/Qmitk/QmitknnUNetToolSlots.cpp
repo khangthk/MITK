@@ -331,6 +331,7 @@ void QmitknnUNetToolGUI::OnCheckBoxChanged(int state)
         m_Controls.multiModalSpinBox->setValue(0);
         delete m_Modalities[0];
         m_Modalities.pop_back();
+        ClearAllModalLabels();
       }
     }
   }
@@ -453,7 +454,7 @@ void QmitknnUNetToolGUI::ShowEnsembleLayout(bool visible)
     groupBoxModel1->setCollapsed(false);
     groupBoxModel1->setFlat(true);
     groupBoxModel1->setAlignment(Qt::AlignRight);
-    m_Controls.advancedSettingsLayout->addWidget(groupBoxModel1, 4, 0, 1, 2);
+    m_Controls.advancedSettingsLayout->addWidget(groupBoxModel1, 5, 0, 1, 2);
 
     connect(lay1->modelBox, SIGNAL(currentTextChanged(const QString &)), this, SLOT(OnModelChanged(const QString &)));
     connect(
@@ -469,7 +470,7 @@ void QmitknnUNetToolGUI::ShowEnsembleLayout(bool visible)
     groupBoxModel2->setCollapsed(false);
     groupBoxModel2->setFlat(true);
     groupBoxModel2->setAlignment(Qt::AlignLeft);
-    m_Controls.advancedSettingsLayout->addWidget(groupBoxModel2, 4, 2, 1, 2);
+    m_Controls.advancedSettingsLayout->addWidget(groupBoxModel2, 5, 2, 1, 2);
 
     connect(lay2->modelBox, SIGNAL(currentTextChanged(const QString &)), this, SLOT(OnModelChanged(const QString &)));
     connect(
