@@ -101,7 +101,7 @@ protected slots:
    * @brief Qthread to capture sucessfull nnUNet segmentation.
    * Further, renders the LabelSet image
    */
-  void SegmentationResultHandler(mitk::nnUNetTool *);
+  void SegmentationResultHandler(mitk::nnUNetTool *, bool forceRender = false);
 
   /**
    * @brief Qt Slot

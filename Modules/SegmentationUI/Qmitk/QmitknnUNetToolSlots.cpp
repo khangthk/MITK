@@ -432,9 +432,12 @@ void QmitknnUNetToolGUI::SegmentationProcessFailed()
   m_Controls.stopButton->setEnabled(false);
 }
 
-void QmitknnUNetToolGUI::SegmentationResultHandler(mitk::nnUNetTool *tool)
+void QmitknnUNetToolGUI::SegmentationResultHandler(mitk::nnUNetTool *tool, bool forceRender)
 {
+  if (forceRender)
+  {
   tool->RenderOutputBuffer();
+  }
   this->SetLabelSetPreview(tool->GetMLPreview());
   WriteStatusMessage("<b>STATUS: </b><i>Segmentation task finished successfully. <br>Please Confirm the "
                      "segmentation else, could result in data loss</i>");

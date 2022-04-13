@@ -211,8 +211,8 @@ void QmitknnUNetToolGUI::OnPreviewRequested()
         {
           nnUNetCache *cacheObject = m_Cache[hashKey];
           MITK_INFO << "fetched pointer " << cacheObject->m_SegCache.GetPointer();
-          tool->SetNodeProperties(const_cast<mitk::LabelSetImage *>(cacheObject->m_SegCache.GetPointer()));
-          SegmentationResultHandler(tool);
+          tool->SetOutputBuffer(const_cast<mitk::LabelSetImage *>(cacheObject->m_SegCache.GetPointer()));
+          SegmentationResultHandler(tool, true);
         }
       }
       m_Controls.previewButton->setEnabled(true);
