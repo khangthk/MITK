@@ -87,8 +87,6 @@ void QmitknnUNetToolGUI::InitializeUI(QBoxLayout *mainLayout)
   m_Controls.multiModalSpinLabel->setVisible(false);
   m_Controls.previewButton->setEnabled(false);
 
-  m_Controls.stopButton->setVisible(false); // Hidden for future
-
   QIcon refreshIcon =
     QmitkStyleManager::ThemeIcon(QStringLiteral(":/org_mitk_icons/icons/awesome/scalable/actions/view-refresh.svg"));
   m_Controls.refreshdirectoryBox->setIcon(refreshIcon);

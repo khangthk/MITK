@@ -429,7 +429,6 @@ void QmitknnUNetToolGUI::SegmentationProcessFailed()
   std::stringstream stream;
   stream << "Error in the segmentation process. No resulting segmentation can be loaded.";
   ShowErrorMessage(stream.str());
-  m_Controls.stopButton->setEnabled(false);
 }
 
 void QmitknnUNetToolGUI::SegmentationResultHandler(mitk::nnUNetTool *tool, bool forceRender)
@@ -441,7 +440,6 @@ void QmitknnUNetToolGUI::SegmentationResultHandler(mitk::nnUNetTool *tool, bool 
   this->SetLabelSetPreview(tool->GetMLPreview());
   WriteStatusMessage("<b>STATUS: </b><i>Segmentation task finished successfully. <br>Please Confirm the "
                      "segmentation else, could result in data loss</i>");
-  m_Controls.stopButton->setEnabled(false);
 }
 
 void QmitknnUNetToolGUI::ShowEnsembleLayout(bool visible)
