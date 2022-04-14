@@ -67,7 +67,6 @@ void QmitknnUNetToolGUI::InitializeUI(QBoxLayout *mainLayout)
   connect(m_Controls.taskBox, SIGNAL(currentTextChanged(const QString &)), this, SLOT(OnTaskChanged(const QString &)));
   connect(
     m_Controls.plannerBox, SIGNAL(currentTextChanged(const QString &)), this, SLOT(OnTrainerChanged(const QString &)));
-  connect(m_Controls.nopipBox, SIGNAL(stateChanged(int)), this, SLOT(OnCheckBoxChanged(int)));
   connect(m_Controls.multiModalBox, SIGNAL(stateChanged(int)), this, SLOT(OnCheckBoxChanged(int)));
   connect(m_Controls.multiModalSpinBox, SIGNAL(valueChanged(int)), this, SLOT(OnModalitiesNumberChanged(int)));
   connect(m_Controls.pythonEnvComboBox,
@@ -81,8 +80,6 @@ void QmitknnUNetToolGUI::InitializeUI(QBoxLayout *mainLayout)
   connect(m_Controls.refreshdirectoryBox, SIGNAL(clicked()), this, SLOT(OnRefreshPresssed()));
   connect(m_Controls.clearCacheButton, SIGNAL(clicked()), this, SLOT(OnClearCachePressed()));
 
-  m_Controls.codedirectoryBox->setVisible(false);
-  m_Controls.nnUnetdirLabel->setVisible(false);
   m_Controls.multiModalSpinBox->setVisible(false);
   m_Controls.multiModalSpinLabel->setVisible(false);
   m_Controls.previewButton->setEnabled(false);
@@ -137,25 +134,17 @@ void QmitknnUNetToolGUI::OnPreviewRequested()
       }
       pythonPathTextItem = m_Controls.pythonEnvComboBox->currentText();
       QString pythonPath = m_PythonPath;
-      bool isNoPip = m_Controls.nopipBox->isChecked();
-      std::string nnUNetDirectory;
-      if (isNoPip)
-      {
-        nnUNetDirectory = m_Controls.codedirectoryBox->directory().toStdString();
-      }
-      else if (!IsNNUNetInstalled(pythonPath))
+      if (!IsNNUNetInstalled(pythonPath))
       {
         throw std::runtime_error("nnUNet is not detected in the selected python environment. Please select a valid "
                                  "python environment or install nnUNet.");
       }
-
-      tool->SetnnUNetDirectory(nnUNetDirectory);
       tool->SetPythonPath(pythonPath.toStdString());
       tool->SetModelDirectory(m_ParentFolder->getResultsFolder().toStdString());
       // checkboxes
       tool->SetMirror(m_Controls.mirrorBox->isChecked());
       tool->SetMixedPrecision(m_Controls.mixedPrecisionBox->isChecked());
-      tool->SetNoPip(isNoPip);
+      tool->SetNoPip(false);
       bool doCache = m_Controls.enableCachingCheckBox->isChecked();
       // Spinboxes
       tool->SetGpuId(FetchSelectedGPUFromUI());

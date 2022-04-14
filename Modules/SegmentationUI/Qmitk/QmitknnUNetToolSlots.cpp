@@ -301,12 +301,7 @@ void QmitknnUNetToolGUI::OnCheckBoxChanged(int state)
   ctkCheckBox *box = qobject_cast<ctkCheckBox *>(sender());
   if (box != nullptr)
   {
-    if (box->objectName() == QString("nopipBox"))
-    {
-      m_Controls.codedirectoryBox->setVisible(visibility);
-      m_Controls.nnUnetdirLabel->setVisible(visibility);
-    }
-    else if (box->objectName() == QString("multiModalBox"))
+    if (box->objectName() == QString("multiModalBox"))
     {
       m_Controls.multiModalSpinLabel->setVisible(visibility);
       m_Controls.multiModalSpinBox->setVisible(visibility);
@@ -323,7 +318,6 @@ void QmitknnUNetToolGUI::OnCheckBoxChanged(int state)
         }
         m_Controls.advancedSettingsLayout->addWidget(defaultImage, m_UI_ROWS + m_Modalities.size() + 1, 1, 1, 3);
         m_Modalities.push_back(defaultImage);
-        // m_UI_ROWS++;
       }
       else
       {
@@ -339,7 +333,6 @@ void QmitknnUNetToolGUI::OnCheckBoxChanged(int state)
 
 void QmitknnUNetToolGUI::OnModalitiesNumberChanged(int num)
 {
-  MITK_INFO << "ASHIS NUM MOD " << num;
   while (num > static_cast<int>(m_Modalities.size() - 1))
   {
     QmitkDataStorageComboBox *multiModalBox = new QmitkDataStorageComboBox(this, true);
